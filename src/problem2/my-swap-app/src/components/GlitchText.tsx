@@ -28,7 +28,7 @@ const GlitchText: React.FC<GlitchTextProps> = ({
 
   return (
     <div
-      className={`glitch ${hoverClass} ${className} text-[14]`}
+      className={`glitch ${hoverClass} ${className}`} 
       style={inlineStyles}
       data-text={children as string}
     >
