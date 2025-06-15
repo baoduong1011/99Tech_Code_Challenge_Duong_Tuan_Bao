@@ -1,16 +1,28 @@
-import { Select, Input, message, Menu, Dropdown, Spin, Tooltip } from "antd";
+import {
+  Select,
+  Input,
+  message,
+  Menu,
+  Dropdown,
+  Spin,
+  Tooltip,
+  Modal,
+  notification,
+} from "antd";
 import { FiRefreshCcw } from "react-icons/fi";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SettingOutlined, DownOutlined } from "@ant-design/icons";
 import type { CoinType, Currency } from "../types/coin";
 import { getListCoin } from "../hooks/getListCoin";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import WaveIcons from "./WaveIcon";
 import GlitchText from "./GlitchText";
 import CalculateValue from "./CalculateValue";
 import { currencyIconMap } from "../types/icon";
 import swapSound from "../assets/sounds/swapCoin.wav";
+import transferSound from "../assets/sounds/transferCoin.wav";
+import errorSound from "../assets/sounds/error.wav";
 
 const { Option } = Select;
 
@@ -32,6 +44,8 @@ const TokenOption = ({ label }: { label: string }) => (
 const SwapCard = () => {
   const { t, i18n } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioTranserRef = useRef<HTMLAudioElement | null>(null);
+  const errorTranserRef = useRef<HTMLAudioElement | null>(null);
   const languageMenu = (
     <Menu
       items={[
@@ -63,9 +77,57 @@ const SwapCard = () => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const [hasInputError, setHasInputError] = useState(false);
+
+  const handleTransfer = () => {
+    if (sellingCoin.amount <= 0) {
+      setHasInputError(true);
+      errorTranserRef.current?.play();
+      notification.error({
+        message: (
+          <span style={{ fontWeight: 600, fontSize: 16 }}>
+            <span style={{ color: "#FF6B6B" }}>Invalid Amount</span>
+          </span>
+        ),
+        description: (
+          <div style={{ fontSize: 13, marginTop: 4 }}>
+            Please enter a valid amount greater than <strong>0</strong>.
+          </div>
+        ),
+        placement: "topRight",
+        style: {
+          background:
+            "radial-gradient(circle at top left, rgba(34,197,94,0.25), rgba(59,130,246,0.25))",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)", // Safari support
+          color: "#FFFFFF",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          boxShadow: "0 4px 30px rgba(0, 0, 0, 0.4)",
+          borderRadius: "16px",
+          padding: "16px 24px",
+          fontFamily: "'Inter', sans-serif",
+        },
+        duration: 3.5,
+      });
+      return;
+    }
+    audioTranserRef.current?.play();
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    fetchListCoin();
+    setIsModalVisible(false);
+  };
+
   const renderOptionsCoin = (key: boolean) =>
     listCoin
-      .filter((coin) => coin.currency !== (key ? sellingCoin.currency : buyingCoin.currency))
+      .filter(
+        (coin) =>
+          coin.currency !== (key ? sellingCoin.currency : buyingCoin.currency)
+      )
       .map((coin) => (
         <Option clas key={coin.currency} value={coin.currency}>
           <TokenOption label={coin.currency} />
@@ -113,6 +175,8 @@ const SwapCard = () => {
   useEffect(() => {
     fetchListCoin();
     audioRef.current = new Audio(swapSound);
+    audioTranserRef.current = new Audio(transferSound);
+    errorTranserRef.current = new Audio(errorSound);
   }, []);
 
   useEffect(() => {
@@ -161,7 +225,11 @@ const SwapCard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="bg-white/10 p-4 rounded-xl mb-4">
+          <div
+            className={`bg-white/10 p-4 rounded-xl mb-4 ${
+              hasInputError ? "border-red-500 border-2 rounded-md" : ""
+            }`}
+          >
             <div className="flex justify-between text-sm mb-1">
               <span className="font-bold">{t("amountToSend")}</span>
             </div>
@@ -170,12 +238,15 @@ const SwapCard = () => {
                 value={sellingCoin.amount}
                 type="number"
                 min={0}
-                onChange={(e) =>
+                onChange={(e) => {
                   setSellingCoin((prev) => ({
                     ...prev,
                     amount: parseFloat(e.target.value || "0"),
-                  }))
-                }
+                  }));
+                  if (parseFloat(e.target.value) > 0) {
+                    setHasInputError(false);
+                  }
+                }}
                 className="bg-transparent text-white text-2xl font-bold w-full p-2"
                 style={{
                   backgroundColor: "transparent",
@@ -317,6 +388,63 @@ const SwapCard = () => {
             <span>${(buyingCoin.amount * buyingCoin.price).toFixed(2)}</span>
           </div>
         </div>
+
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300"
+          onClick={handleTransfer}
+        >
+          🚀 Transfer
+        </motion.button>
+
+        <AnimatePresence>
+          {isModalVisible && (
+            <Modal
+              open={isModalVisible}
+              footer={null}
+              onCancel={handleCloseModal}
+              closable={false}
+              centered
+              maskStyle={{
+                backdropFilter: "blur(6px)",
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+              }}
+            >
+              <div className="rounded-2xl bg-gradient-to-br from-[#1e1e2f] to-[#2a2a3d] p-6 text-white text-center shadow-2xl border border-white/10">
+                <div className="flex justify-center mb-4">
+                  <div className="bg-green-500/20 p-3 rounded-full">
+                    <svg
+                      className="w-8 h-8 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <h2 className="text-xl font-semibold mb-2">
+                  Transfer Successful
+                </h2>
+                <p className="text-sm text-gray-300 mb-4">
+                  Your token transfer has been confirmed on the blockchain.
+                </p>
+                <button
+                  onClick={handleCloseModal}
+                  className="bg-gradient-to-r from-green-500 to-indigo-500 hover:from-green-600 hover:to-indigo-600 text-white px-4 py-2 rounded-md transition-all duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </Modal>
+          )}
+        </AnimatePresence>
       </div>
     </Spin>
   );

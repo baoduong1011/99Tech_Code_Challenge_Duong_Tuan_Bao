@@ -55,3 +55,13 @@
   background-color: transparent !important;
   font-weight: normal !important;
 }
+
+.ant-modal-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.ant-modal-body {
+  padding: 0 !important;
+}

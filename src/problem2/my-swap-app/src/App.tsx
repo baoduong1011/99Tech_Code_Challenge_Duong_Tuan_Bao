@@ -13,8 +13,8 @@ function App() {
         trigger="hover"
         backgroundColor="transparent"
         wireframes={false}
-        gravity={0.56}
-        fontSize="2rem"
+        gravity={0.5}
+        fontSize="1.5rem"
         mouseConstraintStiffness={0.9}
       >
         <SwapCard />
