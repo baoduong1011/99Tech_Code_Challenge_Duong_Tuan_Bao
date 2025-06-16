@@ -1,6 +1,8 @@
 ## Link Demo ##
 https://99-tech-code-challenge-duong-tuan-b-azure.vercel.app/
 
+## The app supports sound to make it more vivid, you can turn on the speaker to listen ##
+
 # 99Tech Code Challenge #1 #
 
 Note that if you fork this repository, your responses may be publicly linked to this repo.  
